@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document</title>
+</head>
+<body>
+  <div>
+    <form action="/send-message" method="POST">
+      <input type="text" name="username" placeholder="ユーザー名" required><br>
+      <input type="text" name="message" placeholder="メッセージを入力" required>
+      <button>送信</button>
+    </form>
+  </div>
+  <div class="chat-messages">
+    <div class="message">
+      <span class="username">ユーザー1:</span>
+      <span class="text">こんにちは！</span>
+    </div>
+    <div class="message">
+      <span class="username">ユーザー2:</span>
+      <span class="text">こんにちは、元気ですか？</span>
+    </div>
+    <div class="message">
+      <span class="username">ユーザー1:</span>
+      <span class="text">はい、元気です！ありがとう。</span>
+    </div>
+    <!-- 他のメッセージもここに追加されます -->
+  </div>
+</body>
+</html>
