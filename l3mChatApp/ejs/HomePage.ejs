@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>チャットルーム一覧</title>
+</head>
+<body>
+  <h1>チャットルーム一覧</h1>
+  <ul>
+    <% chatRooms.forEach(room => { %>
+      <!-- encodeしないとundefinedになる -->
+      <li><a href="./room?id=<%= room.room_id %>&name=<%= encodeURIComponent(room.room_name) %>"><%= room.room_name %></a></li>
+    <% }); %>
+  </ul>
+  <a href="./create-room">チャットルームの作成</a>
+</body>
+</html>
