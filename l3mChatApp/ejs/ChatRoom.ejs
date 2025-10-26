@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document</title>
+  <style>
+    .chat-messages {
+      border: 1px solid #ccc;
+      padding: 10px;
+      max-height: 400px;
+      overflow-y: scroll;
+    }
+    .message {
+      margin-bottom: 10px;
+    }
+    .username {
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <div>
+    <form action="/send-message" method="POST">
+      <input type="hidden" name="room_id" value="<%= roomId %>">
+      <input type="hidden" name="room_name" value="<%= roomName %>">
+      <input type="text" name="username" placeholder="ユーザー名" required><br>
+      <input type="text" name="message" placeholder="メッセージを入力" required>
+      <button>送信</button>
+    </form>
+  </div>
+  <h1><%= roomName %></h1>
+  <div class="chat-messages">
+    <% chatLog.slice().reverse().forEach(log => { %>
+      <div class="message">
+        <span class="username"><%= log.user_name %>:</span>
+        <span class="text"><%= log.message %></span>
+      </div>
+    <% }); %>
+  </div>
+</body>
+</html>
