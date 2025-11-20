@@ -50,16 +50,42 @@ app.get('/room', (req, res) => {
 });
 
 app.get('/create-room', (req, res) => {
-  res.sendFile(join(__dirname, "../public/CreateRoom.html"));
+  res.render('CreateRoom');
+//   res.sendFile(join(__dirname, "../public/CreateRoom.html"));
+});
+
+app.post('/create-room', (req, res) => {
+  db.serialize(() => {
+    const roomName = req.body['room-name'];
+    const countQuery = `select count(room_id) as count from ChatRoom`;
+    let roomCount = 0;
+    db.get(countQuery, (err, row) => {
+      if (err) {
+        console.error(err);
+        res.status(500).send("Database error");
+        return;
+      }
+      roomCount = row.count;
+      const insertQuery = `INSERT INTO ChatRoom (room_id, room_name) VALUES (?, ?)`;
+      db.run(insertQuery, [roomCount + 1, roomName], (err) => {
+        if (err) {
+          console.error(err);
+          res.status(500).send("Database error");
+          return;
+        }
+        res.redirect('/');
+      });
+    });
+  });
 });
 
 app.post('/send-message', (req, res) => {
+  const roomId = req.body.room_id;
+  const roomName = req.body.room_name;
+  const username = req.body.username;
+  const message = req.body.message;
+  const timestamp = new Date().toISOString();
   db.serialize(() => {
-    const roomId = req.body.room_id;
-    const roomName = req.body.room_name;
-    const username = req.body.username;
-    const message = req.body.message;
-    const timestamp = new Date().toISOString();
 
     const insertQuery = `INSERT INTO ChatLog (room_id, user_name, message, post_date) VALUES (?, ?, ?, ?)`;
     db.run(insertQuery, [roomId, username, message, timestamp], (err) => {
