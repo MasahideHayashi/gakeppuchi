@@ -2,6 +2,7 @@ import express from 'express';
 import { join,dirname } from 'path';
 import sqlite3 from 'sqlite3';
 import { fileURLToPath } from 'url';
+import runOllama from './aiag.js';
 const app = express();
 const port = 3000;
 
