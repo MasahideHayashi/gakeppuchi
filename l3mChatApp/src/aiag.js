@@ -11,14 +11,15 @@ async function runOllama(prompt = 'What is your name?'){
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
             model: 'llama3',
-            prompt: prompt
+            prompt: prompt,
+            stream: false
         })
     });
 
     if (!response.ok) {
         const errText = await response.text().catch(() => '');
         process.stderr.write(`Request failed: ${response.status} ${response.statusText}\n${errText}\n`);
-        return;
+        return "error";
     }
     console.log('Response received from Ollama API.');
     const contentType = (response.headers.get('content-type') || '').toLowerCase();
@@ -36,27 +37,29 @@ async function runOllama(prompt = 'What is your name?'){
         } catch {
             process.stdout.write(text);
         }
-        return;
+        return text;
     }
 
     // If streaming or plain text, pipe chunks to stdout
     if (response.body && typeof response.body[Symbol.asyncIterator] === 'function') {
         let res = "";
         for await (const chunk of response.body) {
-            const jchunk = JSON.parse(chunk.toString());
-            if(jchunk["done"]) break;
-            res += jchunk["response"];
+            const line = chunk.toString().trim();
+            if(!line) continue;
+            const jchunk = JSON.parse(line);
+            res += jchunk.response;
             // const s = chunk.toString();
             // process.stdout.write(s+"yaho");
         }
         // Ensure newline at end
         process.stdout.write(res + '\n');
-        return;
+        return res;
     }
 
     // Fallback: read full text
     const fallbackText = await response.text();
     process.stdout.write(fallbackText + '\n');
+    return fallbackText;
 }
 
-runOllama(process.argv[2])
+export default runOllama;

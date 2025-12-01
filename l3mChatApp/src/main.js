@@ -3,12 +3,14 @@ import { join,dirname } from 'path';
 import sqlite3 from 'sqlite3';
 import { fileURLToPath } from 'url';
 import runOllama from './aiag.js';
+import { readFile } from 'fs/promises';
+
 const app = express();
 const port = 3000;
 
 app.use(express.urlencoded({ extended: true }));
 
-const __dirname = dirname(new URL(import.meta.url).pathname);
+const __dirname = dirname(fileURLToPath(import.meta.url));
 
 app.set('view engine', 'ejs');
 app.set('views', join(__dirname, "../ejs"));
@@ -30,16 +32,17 @@ app.get('/', (req, res) => {
   });
 });
 
-app.get('/room', (req, res) => {
+app.get('/room', async (req, res) => {
   db.serialize(() => {
     const roomId = req.query.id;
     const roomName = req.query.name;
-    db.all("SELECT * FROM ChatLog WHERE room_id = ?", [roomId], (err, rows) => {
+    db.all("SELECT * FROM ChatLog WHERE room_id = ?", [roomId], async (err, rows) => {
       if (err) {
         console.error(err);
         res.status(500).send("Database error");
         return;
       }
+
       const chatData = { 
         roomName: roomName,
         roomId: roomId,
@@ -87,16 +90,45 @@ app.post('/send-message', (req, res) => {
   const username = req.body.username;
   const message = req.body.message;
   const timestamp = new Date().toISOString();
-  db.serialize(() => {
 
+  db.serialize(async () => {
     const insertQuery = `INSERT INTO ChatLog (room_id, user_name, message, post_date) VALUES (?, ?, ?, ?)`;
-    db.run(insertQuery, [roomId, username, message, timestamp], (err) => {
+    db.run(insertQuery, [roomId, username, message, timestamp], async (err) => {
       if (err) {
         console.error(err);
         res.status(500).send("Database error");
         return;
       }
-      res.redirect(`/room?id=${roomId}&name=${encodeURIComponent(roomName)}`); // メッセージ送信後にチャットルームにリダイレクト
+
+      const getlogQuery = `SELECT * FROM ChatLog WHERE room_id = ?`;
+      db.all(getlogQuery, [roomId], async (err, rows) => {
+        if (err) {
+          console.error(err);
+          return;
+        }
+
+        try {
+          const promptTemplate = await readFile(join(__dirname, '../prompt/generate_dialogue.txt'), 'utf-8');
+          const dialogue = rows.map(row => `${row.user_name}: ${row.message}`).join('\n');
+          const fullPrompt = `${promptTemplate}\n# 会話内容\n${dialogue}`;
+
+          // Ollama API呼び出し
+          const aiResponse = await runOllama(fullPrompt);
+          const responseMessage = aiResponse ? aiResponse.trim() : "AIからの応答が得られませんでした。";
+
+          const reinsertQuery = `INSERT INTO ChatLog (room_id, user_name, message, post_date) VALUES (?, ?, ?, ?)`;
+          db.run(reinsertQuery, [roomId, "AI", responseMessage, new Date().toISOString()], (err) => {
+            if (err) {
+              console.error("AI message insert error:", err);
+            }
+            // AIメッセージの挿入後にリダイレクト
+            res.redirect(`/room?id=${roomId}&name=${encodeURIComponent(roomName)}`);
+          });
+        } catch (e) {
+          console.error("AI response error:", e);
+          res.redirect(`/room?id=${roomId}&name=${encodeURIComponent(roomName)}`);
+        }
+      });
     });
   });
 });
